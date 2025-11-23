@@ -3,10 +3,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from fastapi import Request
+
 import random
 import os
 
 app = FastAPI(title="AutoQuote AI Demo")
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
+
 
 # CORS for frontend
 app.add_middleware(
@@ -24,6 +32,10 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 @app.get("/")
 def serve_home():
     return FileResponse("index.html")
+@app.get("/", response_class=HTMLResponse)
+def home(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
 
 # Demo quote pool
 quotes = [
