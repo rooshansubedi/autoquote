@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AutoQuote AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<style>
+    body {
+        font-family: 'Roboto', sans-serif;
+        height: 100vh;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding-top: 40px;
+        background: linear-gradient(-45deg, #ff9a9e, #fad0c4, #a18cd1, #fbc2eb);
+        background-size: 400% 400%;
+        animation: gradientBG 15s ease infinite;
+    }
+
+    @keyframes gradientBG {
+        0% {background-position: 0% 50%;}
+        50% {background-position: 100% 50%;}
+        100% {background-position: 0% 50%;}
+    }
+
+    .container {
+        background: #fff;
+        padding: 40px 30px;
+        border-radius: 15px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        text-align: center;
+        width: 400px;
+        max-width: 90%;
+        transition: transform 0.2s;
+    }
+
+    .container:hover {
+        transform: translateY(-5px);
+    }
+
+    h1 {
+        color: #333;
+        margin-bottom: 25px;
+        font-size: 2em;
+    }
+
+    input[type="text"] {
+        width: 90%;
+        padding: 12px 15px;
+        border: 2px solid #66a6ff;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 16px;
+        transition: border 0.3s;
+    }
+
+    input[type="text"]:focus {
+        border-color: #ff6a6a;
+        outline: none;
+    }
+
+    button {
+        padding: 12px 20px;
+        font-size: 16px;
+        background-color: #ff6a6a;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.3s, transform 0.2s;
+        margin: 5px;
+    }
+
+    button:hover {
+        background-color: #ff4c4c;
+        transform: scale(1.05);
+    }
+
+    #quote {
+        margin-top: 25px;
+        font-style: italic;
+        color: #444;
+        font-size: 1.1em;
+        min-height: 60px;
+        padding: 15px;
+        border-radius: 10px;
+        transition: background 0.5s, opacity 0.5s;
+        opacity: 0;
+    }
+
+    #demoMessage {
+        margin-top: 10px;
+        color: #888;
+        font-size: 0.9em;
+        opacity: 0;
+        transition: opacity 1s ease-in-out;
+    }
+
+    #history {
+        margin-top: 25px;
+        max-height: 200px;
+        overflow-y: auto;
+        text-align: left;
+    }
+
+    .history-item {
+        background: rgba(255, 255, 255, 0.8);
+        padding: 10px 15px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        font-style: italic;
+        transition: background 0.3s;
+    }
+
+    .history-item:hover {
+        background: rgba(255, 255, 255, 1);
+    }
+
+    @media (max-width: 480px) {
+        .container {
+            padding: 25px 20px;
+            width: 95%;
+        }
+
+        h1 {
+            font-size: 1.6em;
+        }
+
+        input[type="text"], button {
+            width: 100%;
+        }
+
+        #quote {
+            font-size: 1em;
+        }
+
+        #demoMessage {
+            font-size: 0.85em;
+        }
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>AutoQuote AI</h1>
+    <input id="topic" type="text" placeholder="Enter a topic" />
+    <br>
+    <button id="generateBtn">Generate Quote</button>
+    <button id="copyBtn">Copy Quote</button>
+    <button id="clearHistoryBtn">Clear History</button>
+    <p id="quote"></p>
+    <p id="demoMessage">⚠️ This is a demo. Quotes are generated locally and may be gibberish. Use for fun only.</p>
+
+    <div id="history"></div>
+</div>
+
+<script>
+const quoteEl = document.getElementById("quote");
+const copyBtn = document.getElementById("copyBtn");
+const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+const demoMessage = document.getElementById("demoMessage");
+const historyDiv = document.getElementById("history");
+
+// Generate random pastel color for quote card
+function randomPastel() {
+    const r = Math.floor((Math.random() * 127) + 127);
+    const g = Math.floor((Math.random() * 127) + 127);
+    const b = Math.floor((Math.random() * 127) + 127);
+    return `rgb(${r},${g},${b})`;
+}
+
+// Display quote word by word
+function displayWordByWord(element, text, callback) {
+    element.innerHTML = "";
+    let words = text.split(" ");
+    let i = 0;
+    element.style.opacity = 1;
+    function addWord() {
+        if(i < words.length) {
+            element.innerHTML += words[i] + " ";
+            i++;
+            setTimeout(addWord, 150);
+        } else if (callback) {
+            callback();
+        }
+    }
+    addWord();
+}
+
+// Add quote to history
+function addToHistory(quoteText) {
+    const item = document.createElement("div");
+    item.className = "history-item";
+    item.innerText = quoteText;
+    historyDiv.prepend(item); // newest on top
+}
+
+// Clear quote history
+clearHistoryBtn.addEventListener("click", () => {
+    historyDiv.innerHTML = "";
+});
+
+// Generate quote from backend
+document.getElementById("generateBtn").addEventListener("click", async () => {
+    const topic = document.getElementById("topic").value.trim();
+    if (!topic) {
+        alert("Please enter a topic!");
+        return;
+    }
+
+    demoMessage.style.opacity = 0;
+    quoteEl.style.opacity = 0;
+    quoteEl.innerText = "Generating quote...";
+    quoteEl.style.background = randomPastel();
+
+    try {
+        const res = await fetch("http://127.0.0.1:8000/generate-quote", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ topic: topic })
+        });
+
+        const data = await res.json();
+
+        displayWordByWord(quoteEl, `“${data.quote}”`, () => {
+            demoMessage.style.opacity = 1;
+            addToHistory(`“${data.quote}”`);
+        });
+
+    } catch (err) {
+        quoteEl.innerText = "Error generating quote!";
+        quoteEl.style.opacity = 1;
+        demoMessage.style.opacity = 1;
+        console.error(err);
+    }
+});
+
+// Copy quote to clipboard
+copyBtn.addEventListener("click", () => {
+    const text = quoteEl.innerText;
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+        alert("Quote copied to clipboard!");
+    });
+});
+</script>
+</body>
+</html>
