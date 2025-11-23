@@ -217,7 +217,7 @@ document.getElementById("generateBtn").addEventListener("click", async () => {
     quoteEl.style.background = randomPastel();
 
     try {
-        const res = await fetch("htthttps://autoquote.onrender.com/generate-quote", {
+        const res = await fetch("https://autoquotegpt.onrender.com", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ topic: topic })
